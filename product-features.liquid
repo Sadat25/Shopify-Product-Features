@@ -1,0 +1,942 @@
+{% assign s = section.settings %}
+
+{% if s.image_position == 'left' %}
+  {% assign image_left = true %}
+{% else %}
+  {% assign image_left = false %}
+{% endif %}
+
+{%- comment -%} Resolve section min-height from preset or custom value {%- endcomment -%}
+{% case s.section_height %}
+  {% when 'small' %}
+    {% assign section_min_height = '500px' %}
+  {% when 'medium' %}
+    {% assign section_min_height = '680px' %}
+  {% when 'large' %}
+    {% assign section_min_height = '860px' %}
+  {% when 'fullscreen' %}
+    {% assign section_min_height = '100vh' %}
+  {% else %}
+    {% assign section_min_height = s.custom_height | append: 'px' %}
+{% endcase %}
+
+<section
+  id="pf-{{ section.id }}"
+  class="pf-section{% if image_left %} pf-img-left{% else %} pf-img-right{% endif %}"
+  aria-label="{{ s.section_heading | default: 'Product features' | escape }}"
+  style="
+    --pf-bg:           {{ s.background_color }};
+    --pf-heading-col:  {{ s.heading_color }};
+    --pf-text-col:     {{ s.text_color }};
+    --pf-accent:       {{ s.accent_color }};
+    --pf-btn-bg:       {{ s.button_bg_color }};
+    --pf-btn-text:     {{ s.button_text_color }};
+    --pf-btn-hover:    {{ s.button_hover_color }};
+    --pf-border:       {{ s.border_color }};
+    --pf-radius:       {{ s.border_radius }}px;
+    --pf-h-size:       {{ s.heading_size }}px;
+    --pf-body-size:    {{ s.body_text_size }}px;
+    --pf-pt:           {{ s.padding_top }}px;
+    --pf-pb:           {{ s.padding_bottom }}px;
+    --pf-max-w:        {{ s.max_width }}px;
+    --pf-inner-gap:    {{ s.content_inner_padding }}px;
+    --pf-min-h:        {{ section_min_height }};
+  "
+>
+  {%- comment -%}
+    ── IMAGE PANEL ──────────────────────────────────────────
+    Full 50vw wide, full section height, image covers entirely.
+    No container constraint — bleeds to screen edge.
+  {%- endcomment -%}
+  <div class="pf-image-panel" aria-hidden="true">
+    {% if s.desktop_image != blank %}
+      <img
+        class="pf-img pf-img--desk"
+        src="{{ s.desktop_image | image_url: width: 1200 }}"
+        srcset="
+          {{ s.desktop_image | image_url: width: 600  }} 600w,
+          {{ s.desktop_image | image_url: width: 900  }} 900w,
+          {{ s.desktop_image | image_url: width: 1200 }} 1200w,
+          {{ s.desktop_image | image_url: width: 1600 }} 1600w
+        "
+        sizes="(max-width: 767px) 100vw, 50vw"
+        alt="{{ s.desktop_image.alt | default: '' | escape }}"
+        loading="lazy"
+        width="{{ s.desktop_image.width }}"
+        height="{{ s.desktop_image.height }}"
+      >
+    {% else %}
+      <div class="pf-img-fallback">
+        {{ 'lifestyle-1' | placeholder_svg_tag: 'pf-svg-placeholder' }}
+      </div>
+    {% endif %}
+
+    {% if s.mobile_image != blank %}
+      <img
+        class="pf-img pf-img--mob"
+        src="{{ s.mobile_image | image_url: width: 800 }}"
+        srcset="
+          {{ s.mobile_image | image_url: width: 480 }} 480w,
+          {{ s.mobile_image | image_url: width: 800 }} 800w
+        "
+        sizes="100vw"
+        alt="{{ s.mobile_image.alt | default: '' | escape }}"
+        loading="lazy"
+        width="{{ s.mobile_image.width }}"
+        height="{{ s.mobile_image.height }}"
+      >
+    {% endif %}
+  </div>
+
+  {%- comment -%}
+    ── CONTENT PANEL ────────────────────────────────────────
+    Also 50vw. Inner padding aligns text to container edge.
+    Padding formula: max(24px, (100vw - max_width) / 2)
+    This ensures content aligns with the container boundary.
+  {%- endcomment -%}
+  <div class="pf-content-panel">
+    <div class="pf-content-inner">
+      {%- comment -%} Eyebrow label {%- endcomment -%}
+      {% if s.eyebrow != blank %}
+        <p class="pf-eyebrow">{{ s.eyebrow | escape }}</p>
+      {% endif %}
+
+      {%- comment -%} Section heading {%- endcomment -%}
+      {% if s.section_heading != blank %}
+        <{{ s.heading_tag }} class="pf-heading">
+          {{ s.section_heading }}
+        </{{ s.heading_tag }}>
+      {% endif %}
+
+      {%- comment -%} Rich text description {%- endcomment -%}
+      {% if s.description != blank %}
+        <div class="pf-desc">{{ s.description }}</div>
+      {% endif %}
+
+      {%- comment -%} Badge pill blocks {%- endcomment -%}
+      {% assign badge_blocks = section.blocks | where: 'type', 'badge' %}
+      {% if badge_blocks.size > 0 %}
+        <div class="pf-badges" role="list" aria-label="Product attributes">
+          {% for block in badge_blocks %}
+            <span class="pf-badge" role="listitem" {{ block.shopify_attributes }}>
+              {{ block.settings.label | escape }}
+            </span>
+          {% endfor %}
+        </div>
+      {% endif %}
+
+      {%- comment -%} Feature bullet blocks {%- endcomment -%}
+      {% assign feature_blocks = section.blocks | where: 'type', 'feature' %}
+      {% if feature_blocks.size > 0 %}
+        <ul class="pf-features" role="list" aria-label="Key features">
+          {% for block in feature_blocks %}
+            <li class="pf-feature" {{ block.shopify_attributes }}>
+              <span class="pf-feature__dot" aria-hidden="true">
+                {% if block.settings.icon_image != blank %}
+                  <img
+                    src="{{ block.settings.icon_image | image_url: width: 40 }}"
+                    alt=""
+                    width="18"
+                    height="18"
+                    loading="lazy"
+                  >
+                {% else %}
+                  <svg
+                    width="7"
+                    height="7"
+                    viewBox="0 0 7 7"
+                    xmlns="http://www.w3.org/2000/svg"
+                    fill="currentColor"
+                    aria-hidden="true"
+                    focusable="false"
+                  >
+                    <circle cx="3.5" cy="3.5" r="3.5"/>
+                  </svg>
+                {% endif %}
+              </span>
+              <span class="pf-feature__text">
+                {% if block.settings.title != blank %}
+                  <strong class="pf-feature__title">{{ block.settings.title | escape }}</strong>
+                {% endif %}
+                {% if block.settings.text != blank %}
+                  <span class="pf-feature__sub"> — {{ block.settings.text | escape }}</span>
+                {% endif %}
+              </span>
+            </li>
+          {% endfor %}
+        </ul>
+      {% endif %}
+
+      {%- comment -%} Trust signal blocks {%- endcomment -%}
+      {% assign trust_blocks = section.blocks | where: 'type', 'trust_item' %}
+      {% if trust_blocks.size > 0 %}
+        {% if s.trust_label != blank %}
+          <p class="pf-trust-label">{{ s.trust_label | upcase | escape }}</p>
+        {% endif %}
+        <div class="pf-trust-grid" role="list">
+          {% for block in trust_blocks %}
+            <div class="pf-trust-card" role="listitem" {{ block.shopify_attributes }}>
+              {% if block.settings.icon_svg != blank %}
+                <span class="pf-trust-icon" aria-hidden="true">{{ block.settings.icon_svg }}</span>
+              {% endif %}
+              <div class="pf-trust-body">
+                {% if block.settings.title != blank %}
+                  <span class="pf-trust-title">{{ block.settings.title | escape }}</span>
+                {% endif %}
+                {% if block.settings.subtitle != blank %}
+                  <span class="pf-trust-sub">{{ block.settings.subtitle | escape }}</span>
+                {% endif %}
+              </div>
+            </div>
+          {% endfor %}
+        </div>
+      {% endif %}
+
+      {%- comment -%} CTA button {%- endcomment -%}
+      {% if s.button_label != blank and s.button_link != blank %}
+        <div class="pf-cta">
+          <a
+            href="{{ s.button_link }}"
+            class="pf-btn"
+            {% if s.button_open_new_tab %}
+              target="_blank" rel="noopener noreferrer"
+            {% endif %}
+          >
+            {{ s.button_label | escape }}
+          </a>
+        </div>
+      {% endif %}
+    </div>
+  </div>
+</section>
+
+<style>
+  /* ═══════════════════════════════════════════════════════
+     PRODUCT FEATURES — All rules scoped to section ID
+     ═══════════════════════════════════════════════════════ */
+  #pf-{{ section.id }},
+  #pf-{{ section.id }} *,
+  #pf-{{ section.id }} *::before,
+  #pf-{{ section.id }} *::after {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+  }
+
+  /* ── Outer Section ─────────────────────────────── */
+  #pf-{{ section.id }}.pf-section {
+    display: flex;
+    align-items: stretch;
+    min-height: var(--pf-min-h);
+    background-color: var(--pf-bg);
+    overflow: hidden;
+    width: 100%;
+    position: relative;
+  }
+
+  /* Image LEFT  → [IMG | CONTENT] */
+  #pf-{{ section.id }}.pf-img-left  { flex-direction: row; }
+  /* Image RIGHT → [CONTENT | IMG] */
+  #pf-{{ section.id }}.pf-img-right { flex-direction: row-reverse; }
+
+  /* ── IMAGE PANEL ────────────────────────────────── */
+  /* Exactly 50% of viewport, full section height, no container */
+  #pf-{{ section.id }} .pf-image-panel {
+    flex: 0 0 50%;
+    width: 50%;
+    position: relative;
+    overflow: hidden;
+    min-height: inherit;
+  }
+
+  #pf-{{ section.id }} .pf-img {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    object-position: center;
+    display: block;
+    transition: transform 0.8s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+  }
+
+  #pf-{{ section.id }} .pf-image-panel:hover .pf-img {
+    transform: scale(1.04);
+  }
+
+  /* Show desktop img by default; mobile img is hidden by default */
+  #pf-{{ section.id }} .pf-img--mob { display: none; }
+
+  #pf-{{ section.id }} .pf-img-fallback {
+    position: absolute;
+    inset: 0;
+    background: #ddd8d0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+  #pf-{{ section.id }} .pf-svg-placeholder {
+    width: 55%;
+    height: 55%;
+    opacity: 0.2;
+  }
+
+  /* ── CONTENT PANEL ──────────────────────────────── */
+  /* Takes the other 50%. Content is aligned to the container. */
+  #pf-{{ section.id }} .pf-content-panel {
+    flex: 0 0 50%;
+    width: 50%;
+    display: flex;
+    align-items: center;
+    background-color: var(--pf-bg);
+  }
+
+
+  #pf-{{ section.id }} .pf-content-inner {
+    width: 100%;
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+    padding-top: var(--pf-pt);
+    padding-bottom: var(--pf-pb);
+  }
+
+  /* Image RIGHT → content LEFT → left edge padding, right gap to image */
+  #pf-{{ section.id }}.pf-img-right .pf-content-inner {
+    padding-left:  max(24px, calc((100vw - var(--pf-max-w)) / 2));
+    padding-right: var(--pf-inner-gap);
+  }
+
+  /* Image LEFT → content RIGHT → right edge padding, left gap to image */
+  #pf-{{ section.id }}.pf-img-left .pf-content-inner {
+    padding-left:  var(--pf-inner-gap);
+    padding-right: max(24px, calc((100vw - var(--pf-max-w)) / 2));
+  }
+
+  /* ── Eyebrow ──────────────────────────────────── */
+  #pf-{{ section.id }} .pf-eyebrow {
+    font-size: 14px;
+    font-weight: 700;
+    letter-spacing: 1.5px;
+    text-transform: uppercase;
+    color: var(--pf-text-col);
+    opacity: 1;
+    line-height: 1;
+  }
+
+  /* ── Heading ─────────────────────────────────── */
+  #pf-{{ section.id }} .pf-heading {
+    font-size: clamp(28px, 3.2vw, var(--pf-h-size));
+    font-weight: 800;
+    line-height: 1.1;
+    color: var(--pf-heading-col);
+    margin: 10px 0px;
+  }
+
+  /* ── Description ─────────────────────────────── */
+  #pf-{{ section.id }} .pf-desc {
+    font-size: var(--pf-body-size) !important;
+    line-height: 1.75;
+    color: var(--pf-text-col);
+    max-width: 480px;
+  }
+  #pf-{{ section.id }} .pf-desc strong { color: var(--pf-heading-col); font-weight: 700; }
+  #pf-{{ section.id }} .pf-desc em     { font-style: italic; }
+  #pf-{{ section.id }} .pf-desc p      { margin: 0 0 6px; }
+  #pf-{{ section.id }} .pf-desc p:last-child { margin-bottom: 0; }
+
+  /* ── Badge Pills ─────────────────────────────── */
+  #pf-{{ section.id }} .pf-badges {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+
+  #pf-{{ section.id }} .pf-badge {
+    display: inline-flex;
+    align-items: center;
+    padding: 5px 14px;
+    border: 1.5px solid var(--pf-border);
+    border-radius: 5px;
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--pf-text-col);
+    background: transparent;
+    transition: background 0.2s, color 0.2s, border-color 0.2s;
+    user-select: none;
+    cursor: default;
+  }
+
+  #pf-{{ section.id }} .pf-badge:hover {
+    background: #FF8E8D;
+    border-color: #FF8E8D;
+    color: #fff;
+  }
+
+  /* ── Feature List ────────────────────────────── */
+  #pf-{{ section.id }} .pf-features {
+    list-style: none;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+  }
+
+  #pf-{{ section.id }} .pf-feature {
+    display: flex;
+    align-items: flex-start;
+    gap: 10px;
+  }
+
+  #pf-{{ section.id }} .pf-feature__dot {
+    flex-shrink: 0;
+    width: 18px;
+    height: 18px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--pf-accent);
+    margin-top: 3px;
+  }
+
+  #pf-{{ section.id }} .pf-feature__text {
+    font-size: var(--pf-body-size);
+    line-height: 1.6;
+    color: var(--pf-text-col);
+  }
+
+  #pf-{{ section.id }} .pf-feature__title {
+    font-weight: 700;
+    color: var(--pf-heading-col);
+    font-size: 18px
+  }
+
+  #pf-{{ section.id }} .pf-feature__sub {
+    opacity: 1;
+  }
+
+  /* ── Trust Label ─────────────────────────────── */
+  #pf-{{ section.id }} .pf-trust-label {
+    font-size: 14px;
+    font-weight: 600;
+    letter-spacing: 1.5px;
+    color: var(--pf-text-col);
+    opacity: 1;
+    margin-top: 15px;
+  }
+
+  /* ── Trust Grid ──────────────────────────────── */
+  #pf-{{ section.id }} .pf-trust-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 8px;
+  }
+
+  #pf-{{ section.id }} .pf-trust-card {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 11px 13px;
+    background: rgba(255,255,255,0.5);
+    border: 1.5px solid var(--pf-border);
+    border-radius: calc(var(--pf-radius) * 0.65);
+    backdrop-filter: blur(6px);
+    -webkit-backdrop-filter: blur(6px);
+  }
+
+  #pf-{{ section.id }} .pf-trust-icon {
+    flex-shrink: 0;
+    width: 24px;
+    height: 24px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--pf-accent);
+  }
+
+  #pf-{{ section.id }} .pf-trust-icon svg { width: 30px; height: 30px; }
+
+  #pf-{{ section.id }} .pf-trust-body {
+    display: flex;
+    flex-direction: column;
+    min-width: 0;
+  }
+
+  #pf-{{ section.id }} .pf-trust-title {
+    font-size: 16px;
+    font-weight: 700;
+    color: var(--pf-heading-col);
+    line-height: 1.25;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  #pf-{{ section.id }} .pf-trust-sub {
+    font-size: 14px;
+    color: var(--pf-text-col);
+    opacity: 1;
+    margin-top: 1px;
+  }
+
+  /* ── CTA Button ──────────────────────────────── */
+  #pf-{{ section.id }} .pf-cta {
+    margin-top: 2px;
+  }
+
+  #pf-{{ section.id }} .pf-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    padding: 13px 30px;
+    background: var(--pf-btn-bg);
+    color: var(--pf-btn-text);
+    border: 2px solid var(--pf-btn-bg);
+    border-radius: var(--pf-radius);
+    font-size: 16px;
+    font-weight: 500;
+    text-decoration: none;
+    transition: background 0.25s, border-color 0.25s, transform 0.2s ease, box-shadow 0.25s;
+    cursor: pointer;
+    line-height: 23px;
+  }
+
+  #pf-{{ section.id }} .pf-btn:hover,
+  #pf-{{ section.id }} .pf-btn:focus-visible {
+    border-color: var(--pf-btn-hover);
+    transform: translateY(-2px);
+    box-shadow: 0 10px 28px rgba(0,0,0,0.13);
+    outline: none;
+  }
+
+  /* ═══════════════════════════════════════════════
+     RESPONSIVE — ≤ 900px: Stack vertically
+     Image top, content below
+     ═══════════════════════════════════════════════ */
+  @media (max-width: 900px) {
+    #pf-{{ section.id }}.pf-section {
+      flex-direction: column !important;
+      min-height: unset;
+    }
+
+    #pf-{{ section.id }} .pf-image-panel {
+      flex: none;
+      width: 100%;
+      min-height: 420px;
+      position: relative;
+    }
+
+    /* On mobile the img is positioned absolute in relative container */
+    #pf-{{ section.id }} .pf-img {
+      position: absolute;
+      inset: 0;
+      width: 100%;
+      height: 100%;
+    }
+
+    #pf-{{ section.id }} .pf-content-panel {
+      flex: none;
+      width: 100%;
+    }
+
+    /* Reset complex padding to simple on mobile */
+    #pf-{{ section.id }}.pf-img-left .pf-content-inner,
+    #pf-{{ section.id }}.pf-img-right .pf-content-inner {
+      padding-left: 24px !important;
+      padding-right: 24px !important;
+    }
+
+    {% if s.mobile_image != blank %}
+    /* Swap to mobile image if provided */
+    #pf-{{ section.id }} .pf-img--desk { display: none; }
+    #pf-{{ section.id }} .pf-img--mob  { display: block; }
+    {% endif %}
+
+    #pf-{{ section.id }} .pf-trust-grid {
+      grid-template-columns: 1fr 1fr;
+    }
+    #pf-{{ section.id }} .pf-trust-icon svg {
+       width: 15px; height: 15px; 
+      }
+      
+  }
+
+  @media (max-width: 480px) {
+    #pf-{{ section.id }} .pf-image-panel {
+      min-height: 300px;
+    }
+
+    #pf-{{ section.id }} .pf-trust-grid {
+      grid-template-columns: 1fr ;
+    }
+
+    #pf-{{ section.id }} .pf-cta {
+      margin: auto;
+    }
+  }
+</style>
+
+{% schema %}
+{
+  "name": "Product Features",
+  "tag": "section",
+  "class": "shopify-section--product-features",
+  "settings": [
+    {
+      "type": "header",
+      "content": "📐 Section Height"
+    },
+    {
+      "type": "select",
+      "id": "section_height",
+      "label": "Section min-height preset",
+      "info": "Select a preset or choose 'Custom' and enter px below.",
+      "options": [
+        { "value": "small", "label": "Small — 500px" },
+        { "value": "medium", "label": "Medium — 680px" },
+        { "value": "large", "label": "Large — 860px" },
+        { "value": "fullscreen", "label": "Full screen — 100vh" },
+        { "value": "custom", "label": "Custom (set below)" }
+      ],
+      "default": "large"
+    },
+    {
+      "type": "range",
+      "id": "custom_height",
+      "label": "Custom height (px)",
+      "info": "Only applies when 'Custom' is selected above.",
+      "min": 300,
+      "max": 1200,
+      "step": 10,
+      "default": 720
+    },
+    {
+      "type": "header",
+      "content": "📐 Layout"
+    },
+    {
+      "type": "select",
+      "id": "image_position",
+      "label": "Image position",
+      "options": [
+        { "value": "right", "label": "Right — content on left" },
+        { "value": "left", "label": "Left — content on right" }
+      ],
+      "default": "right"
+    },
+    {
+      "type": "range",
+      "id": "max_width",
+      "label": "Container max-width (px)",
+      "info": "Used to calculate inner text padding so content aligns to the container edge.",
+      "min": 800,
+      "max": 1800,
+      "step": 20,
+      "default": 1420
+    },
+    {
+      "type": "range",
+      "id": "content_inner_padding",
+      "label": "Gap between text and image edge (px)",
+      "min": 20,
+      "max": 180,
+      "step": 4,
+      "default": 64
+    },
+    {
+      "type": "range",
+      "id": "padding_top",
+      "label": "Content padding top (px)",
+      "min": 0,
+      "max": 160,
+      "step": 4,
+      "default": 64
+    },
+    {
+      "type": "range",
+      "id": "padding_bottom",
+      "label": "Content padding bottom (px)",
+      "min": 0,
+      "max": 160,
+      "step": 4,
+      "default": 64
+    },
+    {
+      "type": "range",
+      "id": "border_radius",
+      "label": "Card / button border radius (px)",
+      "min": 0,
+      "max": 32,
+      "step": 2,
+      "default": 8
+    },
+    {
+      "type": "header",
+      "content": "🖼 Images"
+    },
+    {
+      "type": "image_picker",
+      "id": "desktop_image",
+      "label": "Main image (desktop)"
+    },
+    {
+      "type": "image_picker",
+      "id": "mobile_image",
+      "label": "Mobile image override (optional)"
+    },
+    {
+      "type": "header",
+      "content": "✏️ Text Content"
+    },
+    {
+      "type": "text",
+      "id": "eyebrow",
+      "label": "Eyebrow label",
+      "default": "EIKEN SELECTION · CITY · TRAVEL · OUTDOORS"
+    },
+    {
+      "type": "select",
+      "id": "heading_tag",
+      "label": "Heading HTML tag (SEO)",
+      "options": [
+        { "value": "h1", "label": "H1" },
+        { "value": "h2", "label": "H2" },
+        { "value": "h3", "label": "H3" }
+      ],
+      "default": "h2"
+    },
+    {
+      "type": "text",
+      "id": "section_heading",
+      "label": "Heading",
+      "default": "Adventure starts here."
+    },
+    {
+      "type": "richtext",
+      "id": "description",
+      "label": "Description",
+      "default": "<p>We do the filtering for you: bags picked to <strong>move</strong>, fit real days, and age beautifully — <strong>no buyer's remorse.</strong></p>"
+    },
+    {
+      "type": "text",
+      "id": "trust_label",
+      "label": "Trust signals eyebrow label",
+      "default": "What you can expect"
+    },
+    {
+      "type": "header",
+      "content": "🔗 Button"
+    },
+    {
+      "type": "text",
+      "id": "button_label",
+      "label": "Button label"
+    },
+    {
+      "type": "url",
+      "id": "button_link",
+      "label": "Button link"
+    },
+    {
+      "type": "checkbox",
+      "id": "button_open_new_tab",
+      "label": "Open in new tab",
+      "default": false
+    },
+    {
+      "type": "header",
+      "content": "🔠 Typography"
+    },
+    {
+      "type": "range",
+      "id": "heading_size",
+      "label": "Heading font size (px)",
+      "min": 24,
+      "max": 80,
+      "step": 2,
+      "default": 52
+    },
+    {
+      "type": "range",
+      "id": "body_text_size",
+      "label": "Body text size (px)",
+      "min": 12,
+      "max": 22,
+      "step": 1,
+      "default": 15
+    },
+    {
+      "type": "header",
+      "content": "🎨 Colors"
+    },
+    {
+      "type": "color",
+      "id": "background_color",
+      "label": "Section background",
+      "default": "#EDE9E3"
+    },
+    {
+      "type": "color",
+      "id": "heading_color",
+      "label": "Heading color",
+      "default": "#1A1A1A"
+    },
+    {
+      "type": "color",
+      "id": "text_color",
+      "label": "Body text color",
+      "default": "#3D3D3D"
+    },
+    {
+      "type": "color",
+      "id": "accent_color",
+      "label": "Accent / bullet / icon color",
+      "default": "#2D2D2D"
+    },
+    {
+      "type": "color",
+      "id": "border_color",
+      "label": "Card / badge border color",
+      "default": "#CEC9C2"
+    },
+    {
+      "type": "color",
+      "id": "button_bg_color",
+      "label": "Button background",
+      "default": "#1A1A1A"
+    },
+    {
+      "type": "color",
+      "id": "button_hover_color",
+      "label": "Button hover background",
+      "default": "#3D3D3D"
+    },
+    {
+      "type": "color",
+      "id": "button_text_color",
+      "label": "Button text",
+      "default": "#FFFFFF"
+    }
+  ],
+  "blocks": [
+    {
+      "type": "badge",
+      "name": "Badge pill",
+      "settings": [
+        {
+          "type": "text",
+          "id": "label",
+          "label": "Label",
+          "default": "Curation"
+        }
+      ]
+    },
+    {
+      "type": "feature",
+      "name": "Feature bullet",
+      "settings": [
+        {
+          "type": "image_picker",
+          "id": "icon_image",
+          "label": "Custom icon image (optional, 24×24 px recommended)"
+        },
+        {
+          "type": "text",
+          "id": "title",
+          "label": "Bold title",
+          "default": "Chosen by use-case"
+        },
+        {
+          "type": "text",
+          "id": "text",
+          "label": "Description",
+          "default": "work, commute, weekends, outdoors"
+        }
+      ]
+    },
+    {
+      "type": "trust_item",
+      "name": "Trust signal card",
+      "settings": [
+        {
+          "type": "html",
+          "id": "icon_svg",
+          "label": "Icon (inline SVG)",
+          "info": "Paste a 20×20 viewBox SVG. It inherits currentColor."
+        },
+        {
+          "type": "text",
+          "id": "title",
+          "label": "Card title",
+          "default": "Tracked shipping"
+        },
+        {
+          "type": "text",
+          "id": "subtitle",
+          "label": "Card subtitle",
+          "default": "fast & reliable"
+        }
+      ]
+    }
+  ],
+  "presets": [
+    {
+      "name": "Product Features",
+      "settings": {
+        "section_height": "large",
+        "image_position": "right",
+        "max_width": 1420
+      },
+      "blocks": [
+        { "type": "badge", "settings": { "label": "Curation" } },
+        { "type": "badge", "settings": { "label": "Comfort" } },
+        { "type": "badge", "settings": { "label": "Organisation" } },
+        { "type": "badge", "settings": { "label": "Materials" } },
+        {
+          "type": "feature",
+          "settings": { "title": "Chosen by use-case", "text": "work, commute, weekends, outdoors" }
+        },
+        {
+          "type": "feature",
+          "settings": { "title": "Useful details", "text": "quick access, smart pockets, stable carry" }
+        },
+        {
+          "type": "feature",
+          "settings": { "title": "Materials that age well", "text": "canvas, leather, recycled" }
+        },
+        {
+          "type": "trust_item",
+          "settings": {
+            "icon_svg": "<svg xmlns='http://www.w3.org/2000/svg' width='20' height='20' viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'><rect x='1' y='3' width='15' height='13' rx='2'/><path d='M16 8h4l3 4v4h-7V8z'/><circle cx='5.5' cy='18.5' r='2.5'/><circle cx='18.5' cy='18.5' r='2.5'/></svg>",
+            "title": "Tracked shipping",
+            "subtitle": "fast & reliable"
+          }
+        },
+        {
+          "type": "trust_item",
+          "settings": {
+            "icon_svg": "<svg xmlns='http://www.w3.org/2000/svg' width='20' height='20' viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'><rect x='3' y='11' width='18' height='11' rx='2'/><path d='M7 11V7a5 5 0 0 1 10 0v4'/></svg>",
+            "title": "Secure checkout",
+            "subtitle": "3x / 4x available"
+          }
+        },
+        {
+          "type": "trust_item",
+          "settings": {
+            "icon_svg": "<svg xmlns='http://www.w3.org/2000/svg' width='20' height='20' viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'><path d='M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z'/></svg>",
+            "title": "Expert guidance",
+            "subtitle": "we help you choose right"
+          }
+        },
+        {
+          "type": "trust_item",
+          "settings": {
+            "icon_svg": "<svg xmlns='http://www.w3.org/2000/svg' width='20' height='20' viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'><polyline points='1 4 1 10 7 10'/><path d='M3.51 15a9 9 0 1 0 .49-3.5'/></svg>",
+            "title": "Easy returns",
+            "subtitle": "30 days"
+          }
+        }
+      ]
+    }
+  ]
+}
+{% endschema %}
